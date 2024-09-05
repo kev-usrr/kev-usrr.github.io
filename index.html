@@ -1,1 +1,110 @@
-<h1>Hello World!</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL - Clic para dibujar un rectángulo</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="webglCanvas" width="800" height="600"></canvas>
+    <script>
+        // Obtener el canvas y el contexto WebGL
+        const canvas = document.getElementById('webglCanvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) {
+            console.error("WebGL no está soportado.");
+        }
+
+        // Configurar el área de dibujo
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.clearColor(0.8, 0.8, 0.8, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        // Función para convertir las coordenadas de clic a coordenadas de WebGL
+        function getMousePosition(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (event.clientX - rect.left) / rect.width * 2 - 1;
+            const y = (rect.bottom - event.clientY) / rect.height * 2 - 1;
+            return { x, y };
+        }
+
+        // Crear shaders
+        const vertexShaderSource = `
+            attribute vec2 a_position;
+            void main() {
+                gl_Position = vec4(a_position, 0.0, 1.0);
+            }
+        `;
+
+        const fragmentShaderSource = `
+            void main() {
+                gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0); // Color azul
+            }
+        `;
+
+        // Crear y compilar los shaders
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Error al compilar el shader:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+        // Crear el programa
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error('Error al enlazar el programa:', gl.getProgramInfoLog(program));
+            gl.deleteProgram(program);
+        }
+
+        gl.useProgram(program);
+
+        // Definir la posición de los vértices del rectángulo en un buffer
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+        const positionLocation = gl.getAttribLocation(program, "a_position");
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        // Función para dibujar un rectángulo
+        function drawRectangle(x, y) {
+            const size = 0.1; // Tamaño del rectángulo
+            const vertices = new Float32Array([
+                x, y,
+                x + size, y,
+                x, y - size,
+                x, y - size,
+                x + size, y,
+                x + size, y - size
+            ]);
+
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+
+        // Manejar el evento de clic
+        canvas.addEventListener('click', (event) => {
+            const mousePos = getMousePosition(event);
+            drawRectangle(mousePos.x, mousePos.y);
+        });
+    </script>
+</body>
+</html>
