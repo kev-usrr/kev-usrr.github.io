@@ -1,2 +1,2 @@
 # kev-usrr.github.io
-WebGL repository for GPL subject.
+WebGL repository for GPC subject.
